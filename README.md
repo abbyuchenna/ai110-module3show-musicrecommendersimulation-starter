@@ -148,11 +148,13 @@ Combines reflection and model card framing from the Module 3 guidance. :contentR
 ```markdown
 # 🎧 Model Card - Music Recommender Simulation
 
-## 1. Model Name
+`## 1. Model Name
 
 Give your recommender a name, for example:
 
 > VibeFinder 1.0
+
+BetterthanSpotify
 
 ---
 
@@ -164,6 +166,10 @@ Give your recommender a name, for example:
 Example:
 
 > This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
+
+BetterthanSpotify suggests the top 3–5 songs from a small catalog based on what a user says they like — including genre, mood, energy level, acoustic preference, favorite era, and specific mood tags.
+
+it’s mainly for classroom use to show how recommendation systems work behind the scenes. it’s not meant for real-world deployment or large-scale users.
 
 ---
 
@@ -177,6 +183,19 @@ Describe your scoring logic in plain language.
 
 Try to avoid code in this section, treat it like an explanation to a non programmer.
 
+here’s what it looks at:
+
+genre: if the song matches the user’s favorite genre, it gets +1.0
+mood: if the mood matches, +1.0
+energy: the closer the song’s energy is to what the user wants, the more points it gets (up to +2.0)
+danceability bonus: if the user likes high-energy music and the song is very danceable, +0.3
+acousticness bonus: if the user prefers acoustic songs and the track is acoustic, +0.5
+popularity bonus: songs with popularity ≥75 get +0.4
+era bonus: if the song is from the user’s preferred decade, +0.5
+mood tag bonus: matching detailed mood tags (like “nostalgic” or “euphoric”) can add up to +0.6
+
+all these points get added together, and the highest-scoring songs are recommended. the system also explains why each song was picked, which makes it really transparent.
+
 ---
 
 ## 4. Data
@@ -188,7 +207,16 @@ Describe your dataset.
 - What kinds of genres or moods are represented
 - Whose taste does this data mostly reflect
 
----
+the dataset (data/songs.csv) has 26 songs total. it started with 10 songs and was expanded by adding 16 more to make it more diverse.
+
+each song includes 13 attributes:
+id, title, artist, genre, mood, energy, tempo, valence, danceability, acousticness, popularity, release decade, and mood tags.
+
+genres included: pop, lofi, rock, jazz, metal, electronic, acoustic, classical, reggae, hip-hop, country, indie pop, synthwave, ambient
+
+moods included: happy, chill, intense, relaxed, focused, moody, energetic, aggressive
+
+overall, the dataset leans toward mainstream western music. pop, lofi, and rock are the most represented, while genres like classical, reggae, and country only have one song each. also, there are no “sad” songs, which is a noticeable gap.
 
 ## 5. Strengths
 
@@ -199,18 +227,14 @@ You can think about:
 - Particular user profiles it served well
 - Simplicity or transparency benefits
 
----
+this recommender works best when the user has clear preferences.
 
-## 6. Limitations and Bias
+for example, a lofi + chill user consistently gets really accurate results — everything lines up across genre, mood, and energy
+a rock + intense energy user gets strong matches like “storm runner,” which fits almost perfectly
+the system is very transparent — it shows exactly how each score was built, so nothing feels random
+energy matching works really well as a tiebreaker when songs are otherwise similar
 
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
-
+overall, it’s simple but predictable, which actually makes it feel reliable in the right situations.
 ---
 
 ## 7. Evaluation
@@ -224,19 +248,37 @@ Examples:
 
 You do not need a numeric metric, but if you used one, explain what it measures.
 
+there are definitely some weaknesses:
+
+small catalog: with only 26 songs, some genres barely have representation, so those users get weaker recommendations
+missing moods: there are no “sad” songs, so those users basically can’t be served properly
+same weights for everyone: the model treats all users the same, even though people value things like mood or genre differently
+artist repetition: the same artist can show up multiple times in top results, which limits variety
+strict genre matching: “pop” and “indie pop” are treated as completely different, which feels unrealistic
+bias in practice: if this were a real product, fans of popular genres (like pop or lofi) would consistently get better recommendations than others
+
+so while it works, it’s not equally fair across all user types.
+
+i tested the system in a few different ways:
+
+user profiles:
+i ran six profiles — three normal (pop/happy, lofi/chill, rock/intense) and three edge cases (like high-energy sad). the normal ones worked really well, but the edge cases exposed gaps, especially with missing moods.
+automated tests:
+there are 17 pytest cases, all passing. they check scoring, ranking, edge cases, and overall functionality.
+sensitivity testing:
+i adjusted the weights (like lowering genre importance and increasing energy). this showed that small changes in weights can completely shift what gets recommended, which highlights how subjective these systems really are.
 ---
+##8. future work
 
-## 8. Future Work
+if i had more time, i’d improve it by:
 
-If you had more time, how would you improve this recommender
+expanding the dataset to 100+ songs with better balance across genres and moods
+adding genre similarity (so related genres get partial credit)
+letting users customize weights based on what they care about most
+incorporating collaborative filtering (using patterns from multiple users)
+actually using the valence score to better capture emotional tone
 
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
-
----
+these changes would make it feel a lot more realistic and personalized.
 
 ## 9. Personal Reflection
 
@@ -246,8 +288,22 @@ A few sentences about what you learned:
 - How did building this change how you think about real music recommenders
 - Where do you think human judgment still matters, even if the model seems "smart"
 
+this project made me realize how far a simple scoring system can go — but also how limited it is without the right data.
+
+what surprised me most was how often certain songs (like “gym hero”) showed up across completely different users. it made me realize that in a small dataset, a few “well-rounded” songs can dominate everything, even if they’re not the best fit.
+
+it also changed how i think about platforms like spotify. they’re probably doing something similar at a basic level, just with way more data and smarter weighting. scale is really what makes their recommendations feel personal.
+
+at the end of the day, human judgment still matters a lot. the algorithm only reflects what you choose to include — if you leave out something like “sad” music, the system literally can’t fix that on its own. someone has to recognize those gaps and design around them.
+
+
+`
 ![Terminal window displaying Python test output with green checkmarks indicating all tests passed, showing test file names and execution summary in a dark command-line interface](data/image%203-21-26.jpg)
 
 ![Terminal Output](data/Image%203-21-26%20at%208.08%20PM.jpg)
+
+![Terminal Output](data/Image%203-21-26%20at%208.58%20PM.jpg)
+
+![Terminal Output](data/Image%203-21-26%20at%208.59%20PM.jpg)
 
 

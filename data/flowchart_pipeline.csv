@@ -1,0 +1,14 @@
+node_id,stage,node_label,description,input,output,next_node
+A,1_input,📥 Input: User Preferences,Accept user preferences dictionary,User interaction,{fav_genre; fav_mood; target_energy; likes_acoustic},B
+B,2_load,📂 Load songs.csv,Load 18 songs from CSV file,File path: data/songs.csv,List[Song],C
+C,3_initialize,Initialize Scores List,Create empty scores list,None,Empty scores_list,D
+D,4_loop,🔄 Loop: For each song,Iterate through each song in dataset,songs[0..17],current_song,E
+E,5_scoring,🎯 Calculate Score,Apply weighted scoring function,"genre_match(+2.0), mood_match(+1.0), energy_sim(+1.0), acousticness_bonus(+0.5)",score_value,F
+F,6_explain,Generate Explanation,Create human-readable reason for score,user_prefs + song + score,"why_explanation (text)",G
+G,7_store,💾 Store Result,Add song result to scores list,{song; score; explanation},scores_list updated,D
+D,4_loop_end,Loop Complete,All songs processed,scores_list with all results,scored_songs,H
+H,8_ranking,📊 Sort by Score,Rank songs by descending score,scores_list,ranked_list,I
+I,9_select,🏆 Select Top K,Choose top 3-5 recommendations,ranked_list,top_k_songs,J
+J,10_output,✅ Format Output,Build output structure,top_k_songs + explanations,"List[(song; score; explanation)]",K
+K,11_display,🎨 Display Results,Print formatted table to terminal,output_list,Terminal output with table,END
+END,12_end,End,Recommendation process complete,None,None,None
