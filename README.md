@@ -2,32 +2,53 @@
 
 ## Project Summary
 
-In this project you will build and explain a small music recommender system.
-
-Your goal is to:
-
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
+This project implements a **weighted scoring music recommender system** that takes user music taste preferences (genre, mood, energy level, acousticness) and returns personalized song recommendations from a 18-song catalog. The system resembles real-world recommenders like Spotify or YouTube Music by using preference matching and feature similarity to rank songs. The recommender also explains *why* each song was selected, improving transparency and user trust.
 
 ---
 
 ## How The System Works
 
-Explain your design in plain language.
+The recommender uses a **weighted point-scoring algorithm**:
 
-Some prompts to answer:
+### Song Features (9 attributes per song):
+- **Categorical**: ID, Title, Artist, Genre, Mood
+- **Numerical (0.0-1.0 scale)**: Energy, Valence, Danceability, Acousticness
+- **Numeric**: Tempo (BPM)
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+### User Preferences:
+- `favorite_genre` (string): e.g., "pop", "lofi", "rock"
+- `favorite_mood` (string): e.g., "happy", "chill", "intense"
+- `target_energy` (float): 0.0-1.0 scale (0.0 = mellow, 1.0 = intense)
+- `high_energy` (bool): Bonus danceability scoring
+- `likes_acoustic` (bool): Bonus for acoustic songs
 
-You can include a simple diagram or bullet list if helpful.
+### Scoring Formula:
+Each song receives a total score of:
+- **Genre match**: +2.0 (highest priority)
+- **Mood match**: +1.0
+- **Energy similarity**: 1.0 × (1 - |target_energy - song_energy|) [range: 0-1]
+- **Danceability bonus**: +0.3 (if high_energy=True and danceability > 0.7)
+- **Acousticness bonus**: +0.5 (if likes_acoustic=True and acousticness > 0.5)
+
+### Selection & Explanation:
+1. Score all 18 songs using the above weights
+2. Sort by descending score
+3. Return top K recommendations (default K=3)
+4. Generate human-readable explanation for each (e.g., "matches your favorite genre and has good acousticness")
+
+---
+
+## Dataset
+
+The catalog contains **18 diverse songs** across 10 genres:
+- Pop, Lofi, Rock, Indie Pop, Metal, Jazz, Electronic, Acoustic, Classical, Reggae, Hip-Hop, Country
+
+**Genre Distribution:**
+- High representation: Pop (2), Lofi (3), Rock (1), Jazz (1)
+- Medium representation: Electronic, Hip-Hop, Country, Indie Pop (1 each)
+- Lower representation: Metal, Acoustic, Classical, Reggae (1 each)
+
+All attributes are realistic and Spotify-like (refer to `data/songs.csv`).
 
 ---
 
@@ -38,65 +59,81 @@ You can include a simple diagram or bullet list if helpful.
 1. Create a virtual environment (optional but recommended):
 
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
-2. Install dependencies
+2. Install dependencies (if any):
 
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3. Run the app:
+3. Run the recommender:
 
-```bash
-python -m src.main
-```
+   ```bash
+   cd src
+   python3 main.py
+   ```
 
 ### Running Tests
 
-Run the starter tests with:
+Run the test suite with:
 
 ```bash
-pytest
+pytest tests/
 ```
-
-You can add more tests in `tests/test_recommender.py`.
 
 ---
 
-## Experiments You Tried
+## Experiments & Results
 
-Use this section to document the experiments you ran. For example:
+### Test Profile 1: Pop & Happy Lover
+```
+Preferences: Pop genre, Happy mood, Energy 0.8, High danceability
+Top Recommendation: "Sunrise City" by Neon Echo (Score: 4.28)
+Reason: Matches genre + mood + close energy + very danceable
+```
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+### Test Profile 2: Lofi & Chill Listener
+```
+Preferences: Lofi genre, Chill mood, Energy 0.4, Acoustic preference
+Top Recommendation: "Midnight Coding" by LoRoom (Score: 4.48)
+Reason: Matches genre + mood + close energy + good acousticness
+```
+
+### Test Profile 3: Rock & Intense Energy Seeker
+```
+Preferences: Rock genre, Intense mood, Energy 0.9, High danceability
+Top Recommendation: "Storm Runner" by Voltline (Score: 3.99)
+Reason: Matches genre + mood + exact energy match
+```
+
+**Key Observation:** The system effectively differentiates between opposite user types. A chill lofi listener gets very different recommendations (low energy, high acoustic) than a rock/intense listener, demonstrating that the weighting strategy creates meaningful preference separation.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+1. **Small catalog (18 songs)**: Limited diversity; real systems have millions
+2. **No collaborative filtering**: Doesn't learn from other users' preferences
+3. **No temporal dynamics**: Ignores mood changes throughout the day/week
+4. **Genre imbalance**: Some genres (Metal, Classical) are underrepresented
+5. **Fixed weights**: All users get same 2.0/1.0/1.0 weights regardless of importance
+6. **No lyrical analysis**: Only uses audio features, not content
+7. **Cold start problem**: New users have no history to inform recommendations
+8. **Popularity bias**: No mechanism to discover underrated songs
 
 ---
 
 ## Reflection
 
-Read and complete `model_card.md`:
+This project revealed that **even simple weighting systems can create surprisingly effective recommendations** when features are chosen carefully. The key insight is that real-world recommenders like Spotify likely use similar logic under the hood—categorical matching (genre/mood) with fine-grained similarity scoring (energy/acousticness)—but with vastly more data and ML optimization.
 
-[**Model Card**](model_card.md)
+The main takeaway is the importance of **transparency and explainability**. By showing users *why* a song was recommended, we build trust and understanding. Real recommenders that hide their logic can feel "magical" but also mysterious or unfair. This project demonstrates that simple, transparent algorithms can be both effective and understandable.
 
-Write 1 to 2 paragraphs here about what you learned:
+
 
 - about how recommenders turn data into predictions
 - about where bias or unfairness could show up in systems like this
@@ -208,4 +245,9 @@ A few sentences about what you learned:
 - What surprised you about how your system behaved
 - How did building this change how you think about real music recommenders
 - Where do you think human judgment still matters, even if the model seems "smart"
+
+![Terminal window displaying Python test output with green checkmarks indicating all tests passed, showing test file names and execution summary in a dark command-line interface](data/image%203-21-26.jpg)
+
+![Terminal Output](data/Image%203-21-26%20at%208.08%20PM.jpg)
+
 
