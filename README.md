@@ -429,7 +429,29 @@ moods covered: happy, chill, intense, relaxed, focused, moody, energetic, aggres
 5. genre matching is exact — "pop" and "indie pop" are treated as completely different
 6. cold start problem — new users have no history
 
-![Example1](/Users/abigailaboah/Desktop/Screen Shot 2026-04-19 at 10.49.15 PM.png)
+---
+
+## 11. critical reflection
+
+### limitations and biases in the system
+
+the catalog has only 26 songs, which means the same songs appear across many different user types regardless of how well they actually match. genre imbalance is a real problem — there are 3 lofi songs but only 1 metal and 1 classical, so fans of underrepresented genres consistently get weaker recommendations. the system has no "sad" mood songs at all, so users requesting sad music are silently redirected to the closest available mood. the acoustic preference bonus also creates a filter bubble: songs that match perfectly on genre, mood, and energy can lose points just for being electric, and the user never sees that penalty explained. finally, gemma 3 1b is a small model and occasionally misinterprets unusual or vague requests, returning genres or moods that are close but not quite right.
+
+### could the ai be misused, and how is it prevented?
+
+the gemma prompt takes raw user input, which means a user could try to inject instructions into the prompt to manipulate the model's output or extract unintended behavior. the system prevents this with two layers: an input guardrail (`check_text_input`) that blocks inputs under 3 characters or over 500 characters before anything reaches gemma, and a preference guardrail (`_validate_and_fix`) that checks every field gemma returns and rejects or corrects anything outside the allowed values. even if gemma produces a hallucinated genre or out-of-range energy, the guardrail catches it before it reaches the recommender.
+
+### what was surprising during reliability testing
+
+the most surprising result was how well the critique → refine loop worked with such a simple fix. when gemma flags results as poor, the system just flips the energy value (`1.0 - energy`) and reruns — and that alone was enough to improve results in most cases. it was also unexpected that gemma sometimes wraps its json response in extra prose, requiring a regex extraction step (`_extract_json`) just to reliably parse the output. the few-shot vs. baseline comparison also showed larger differences than expected — genre, mood, and energy all shifted across every single test input, which made the measurable improvement very clear.
+
+### ai collaboration — helpful and flawed suggestions
+
+**how ai was used:** claude was used throughout development for planning the pipeline architecture, generating `ai_assistant.py`, `guardrails.py`, and the eval script, and debugging edge cases like how to handle gemma returning json wrapped in extra text.
+
+**one helpful suggestion:** the most useful suggestion was adding the critique → refine step. the original plan was just parse → recommend → explain. claude pointed out that if gemma critiques results and finds a poor match, telling the user "these don't fit" without doing anything about it isn't useful. adding the refine step — adjusting energy and retrying — made the system actually responsive to its own self-evaluation, which is the core behavior of a multi-step agent.
+
+**one flawed suggestion:** claude initially used `favorite_genre`, `favorite_mood`, and `target_energy` as the preference dictionary keys in `ai_assistant.py`. but the existing `recommender.py` uses `genre`, `mood`, and `energy`. this would have caused a silent failure — the pipeline would run without errors but the recommender would score every song with zero genre and mood matches because the keys didn't align. the fix was simple once spotted, but it showed that ai-generated integration code has to be read carefully against the existing codebase before running it.
 
 
 
