@@ -1,0 +1,110 @@
+[genre: pop]
+pop music features catchy melodies, upbeat rhythms, and broad mainstream appeal. energy: medium to high (0.5–0.85). typical moods: happy, energetic. great for social settings, dancing, or feeling good. artists like taylor swift, dua lipa, and bruno mars define this sound.
+
+[genre: lofi]
+lofi hip hop is defined by mellow, lo-fidelity beats, soft vinyl crackle, and a calm, nostalgic atmosphere. energy: low (0.2–0.45). typical moods: chill, focused, relaxed. the go-to genre for studying, late-night work sessions, and unwinding. no lyrics, just vibes.
+
+[genre: jazz]
+jazz blends improvisation, complex harmonies, and expressive instrumentation — piano, saxophone, upright bass. energy: low to medium (0.2–0.55). typical moods: relaxed, moody, focused. works well as background music for coffee shops, late nights, or creative work.
+
+[genre: rock]
+rock music is guitar-driven with strong drums and an energetic, rebellious feel. energy: high (0.7–0.95). typical moods: intense, energetic, aggressive. perfect for working out, driving fast, or releasing stress. subgenres range from classic rock to metal.
+
+[genre: electronic]
+electronic music is produced entirely with synthesizers and drum machines. energy: medium to very high (0.5–1.0). typical moods: energetic, happy, focused, or intense depending on subgenre. works for dancing, raving, or focused deep work (ambient electronic).
+
+[genre: metal]
+metal is characterized by heavily distorted guitars, fast drumming, and aggressive or powerful vocals. energy: very high (0.85–1.0). typical moods: aggressive, intense. best for intense workouts, anger release, or listeners who want maximum adrenaline.
+
+[genre: indie]
+indie (independent) music has a raw, authentic, emotionally honest sound. energy: low to medium (0.3–0.65). typical moods: moody, relaxed, happy. associated with introspective moments, rainy days, road trips, and creative inspiration.
+
+[genre: acoustic]
+acoustic music uses unplugged, natural instrumentation — guitar, piano, voice. energy: low to medium (0.2–0.55). typical moods: relaxed, moody, happy. feels intimate and emotional. perfect for quiet mornings, sad days, or reflective evenings.
+
+[genre: synthwave]
+synthwave recreates 1980s electronic sounds — pulsing synths, driving beats, and retro atmosphere. energy: medium to high (0.55–0.85). typical moods: energetic, focused, moody. popular for late-night drives, coding sessions, and nostalgic vibes.
+
+[genre: classical]
+classical music uses orchestral instruments in structured compositions. energy: low to medium (0.1–0.5). typical moods: relaxed, focused. scientifically linked to improved concentration. ideal for studying, reading, or winding down before sleep.
+
+[genre: ambient]
+ambient music is atmospheric, texture-based, and minimalist — designed to create a space rather than demand attention. energy: very low (0.05–0.3). typical moods: relaxed, focused. used for meditation, sleep, background focus, and stress relief.
+
+[genre: reggae]
+reggae has a laid-back, off-beat rhythm rooted in jamaican music. energy: low to medium (0.3–0.6). typical moods: happy, relaxed, chill. associated with beach days, sunny afternoons, and a carefree mindset.
+
+[genre: hip-hop]
+hip-hop combines rhythmic rap vocals with sampled beats. energy: medium to high (0.5–0.85). typical moods: energetic, happy, moody. versatile — can be introspective or hype depending on the track.
+
+[genre: country]
+country music tells stories through guitar, fiddle, and heartfelt vocals. energy: low to medium (0.3–0.65). typical moods: happy, relaxed, moody. great for road trips, campfires, or nostalgic moments.
+
+[mood: happy]
+happy music is bright, upbeat, and optimistic. it lifts your mood and makes you want to move. associated with: pop, reggae, upbeat electronic. energy: medium to high (0.5–0.9).
+
+[mood: chill]
+chill music is relaxed, easygoing, and low-pressure. it doesn't demand your attention but creates a comfortable atmosphere. associated with: lofi, jazz, ambient, reggae. energy: low (0.2–0.45).
+
+[mood: intense]
+intense music builds tension, urgency, or emotional weight. it demands full attention. associated with: rock, metal, electronic, classical (dramatic). energy: high (0.75–1.0).
+
+[mood: relaxed]
+relaxed music is calm, slow, and unhurried. it helps you decompress. associated with: acoustic, jazz, classical, ambient. energy: low (0.1–0.4).
+
+[mood: focused]
+focused music aids concentration without being distracting — instrumental, repetitive, steady rhythm. associated with: lofi, classical, ambient, synthwave. energy: low to medium (0.25–0.55).
+
+[mood: moody]
+moody music is emotionally complex — somewhere between happy and sad, introspective and expressive. associated with: indie, jazz, acoustic, synthwave. energy: low to medium (0.25–0.6).
+
+[mood: energetic]
+energetic music is fast, driven, and exciting — it gets you moving and pumped up. associated with: electronic, pop, hip-hop, rock. energy: high (0.7–0.95).
+
+[mood: aggressive]
+aggressive music is loud, intense, and forceful — it channels anger or raw power. associated with: metal, hard rock, aggressive electronic. energy: very high (0.85–1.0).
+
+[activity: studying]
+studying requires music that aids focus without distraction. best picks: lofi hip hop, classical, ambient, jazz instrumentals. mood: focused or chill. energy: low (0.2–0.45). avoid: music with lyrics, high energy, or sudden tempo changes.
+
+[activity: gym / workout]
+gym and workout sessions need high-energy, motivating music. best picks: rock, metal, electronic, hip-hop, pop. mood: energetic or aggressive. energy: high to very high (0.75–1.0). fast tempo (140–180 bpm).
+
+[activity: late night / can't sleep]
+late night and sleepless sessions call for calm, soft, non-stimulating music. best picks: ambient, lofi, classical, acoustic. mood: relaxed or chill. energy: very low (0.1–0.3).
+
+[activity: driving / road trip]
+driving music should match the road — open, rhythmic, and immersive. best picks: rock, pop, country, electronic, hip-hop. mood: happy or energetic. energy: medium to high (0.5–0.85).
+
+[activity: sad / emotional]
+emotional or sad moments call for music that validates feelings — introspective, slow, and honest. best picks: acoustic, indie, jazz, lofi. mood: moody or relaxed. energy: low (0.15–0.4). likes_acoustic: true.
+
+[activity: party / dancing]
+party and dancing music needs rhythm, energy, and crowd appeal. best picks: pop, electronic, hip-hop, reggae. mood: happy or energetic. energy: high (0.7–0.95).
+
+[activity: morning routine]
+morning music should be uplifting but not overwhelming — easing you into the day. best picks: pop, acoustic, indie, reggae. mood: happy or relaxed. energy: medium (0.4–0.7).
+
+[activity: meditation / yoga]
+meditation and yoga music must be non-intrusive, spacious, and calming. best picks: ambient, classical, acoustic. mood: relaxed. energy: very low (0.05–0.25).
+
+[activity: coding / deep work]
+coding and deep work benefit from instrumental, rhythmic music that maintains flow. best picks: lofi, synthwave, ambient electronic, classical. mood: focused. energy: low to medium (0.3–0.6).
+
+[activity: rainy day]
+rainy day music is introspective and atmospheric — it matches the grey, cozy feeling. best picks: jazz, indie, acoustic, lofi. mood: moody, chill, or relaxed. energy: low (0.2–0.45). likes_acoustic: true.
+
+[energy: very low (0.0–0.25)]
+barely perceptible energy. music is quiet, slow, and atmospheric. genres: ambient, classical (slow), acoustic ballads. used for: sleep, meditation, deep relaxation.
+
+[energy: low (0.25–0.45)]
+calm and unhurried. music flows without urgency. genres: lofi, jazz, acoustic, reggae. used for: studying, background listening, winding down.
+
+[energy: medium (0.45–0.65)]
+balanced energy — neither too calm nor too intense. genres: indie, pop (slower), country, synthwave. used for: everyday listening, morning routines, light tasks.
+
+[energy: high (0.65–0.85)]
+fast-paced and exciting. music commands attention and drives movement. genres: pop, rock, hip-hop, electronic. used for: workouts, driving, parties.
+
+[energy: very high (0.85–1.0)]
+maximum intensity. loud, fast, aggressive. genres: metal, hard rock, intense electronic. used for: extreme workouts, adrenaline activities, stress release.

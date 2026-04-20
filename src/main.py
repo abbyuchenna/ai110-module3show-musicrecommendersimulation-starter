@@ -276,5 +276,70 @@ def main() -> None:
         print_recommendations_table(name, prefs, songs, recs)
 
 
+def demo_few_shot_comparison() -> None:
+    """challenge 6: few-shot specialization — baseline vs few-shot side by side."""
+    from ai_assistant import parse_user_input, parse_user_input_few_shot
+
+    test_inputs = [
+        "chill music for a late night coding session",
+        "something aggressive for heavy lifting",
+        "soft background music for a coffee shop",
+        "i want something upbeat for my morning run",
+    ]
+
+    print("\n" + "=" * 70)
+    print("CHALLENGE 6: FEW-SHOT SPECIALIZATION vs BASELINE")
+    print("=" * 70)
+    print("same input, two different prompting strategies — showing measurable difference\n")
+
+    for text in test_inputs:
+        print(f'input: "{text}"')
+
+        baseline = parse_user_input(text)
+        few = parse_user_input_few_shot(text)
+
+        print(f"  baseline  → genre={baseline['genre']:<12} mood={baseline['mood']:<12} energy={baseline['energy']}")
+        print(f"  few-shot  → genre={few['genre']:<12} mood={few['mood']:<12} energy={few['energy']}")
+
+        changed = []
+        if baseline["genre"] != few["genre"]:
+            changed.append("genre")
+        if baseline["mood"] != few["mood"]:
+            changed.append("mood")
+        if abs(baseline["energy"] - few["energy"]) > 0.1:
+            changed.append("energy")
+        if changed:
+            print(f"  *** measurable difference in: {', '.join(changed)}")
+        print()
+
+
+def main_ai() -> None:
+    """Challenge 5: AI-powered pipeline using Gemma 3 1B."""
+    from ai_assistant import run_ai_pipeline
+    from guardrails import check_text_input
+
+    songs = load_songs("../data/songs.csv")
+
+    test_inputs = [
+        "something chill and relaxing for late night studying",
+        "pump me up, I'm about to hit the gym",
+        "sad rainy day, I want something acoustic and emotional",
+    ]
+
+    for user_text in test_inputs:
+        # Input guardrail check
+        is_valid, err = check_text_input(user_text)
+        if not is_valid:
+            print(f"[Guardrail blocked] {err}")
+            continue
+
+        recs = run_ai_pipeline(user_text, songs)
+
+        print(f"\n  Top results:")
+        for rank, (song, score, _) in enumerate(recs[:3], 1):
+            print(f"  {rank}. {song['title']} by {song['artist']} — Score: {score:.2f}")
+        print()
+
+
 if __name__ == "__main__":
-    main()
+    main_ai()

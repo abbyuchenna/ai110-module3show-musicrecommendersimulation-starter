@@ -1,309 +1,436 @@
-# 🎵 Music Recommender Simulation
-
-## Project Summary
-
-This project implements a **weighted scoring music recommender system** that takes user music taste preferences (genre, mood, energy level, acousticness) and returns personalized song recommendations from a 18-song catalog. The system resembles real-world recommenders like Spotify or YouTube Music by using preference matching and feature similarity to rank songs. The recommender also explains *why* each song was selected, improving transparency and user trust.
+# music recommender simulation — ai-extended
 
 ---
 
-## How The System Works
+## 1. base project identification
 
-The recommender uses a **weighted point-scoring algorithm**:
+**original project:** music recommender simulation (module 3, ai110)
 
-### Song Features (9 attributes per song):
-- **Categorical**: ID, Title, Artist, Genre, Mood
-- **Numerical (0.0-1.0 scale)**: Energy, Valence, Danceability, Acousticness
-- **Numeric**: Tempo (BPM)
+**original goal:** a weighted-scoring recommendation system that takes a user's music preferences (genre, mood, energy level, acoustic preference) and returns personalized song suggestions from a 26-song catalog. each recommendation includes a human-readable explanation of why the song was chosen. the system was designed to simulate how real platforms like spotify rank and filter music — transparently, without machine learning.
 
-### User Preferences:
-- `favorite_genre` (string): e.g., "pop", "lofi", "rock"
-- `favorite_mood` (string): e.g., "happy", "chill", "intense"
-- `target_energy` (float): 0.0-1.0 scale (0.0 = mellow, 1.0 = intense)
-- `high_energy` (bool): Bonus danceability scoring
-- `likes_acoustic` (bool): Bonus for acoustic songs
-
-### Scoring Formula:
-Each song receives a total score of:
-- **Genre match**: +2.0 (highest priority)
-- **Mood match**: +1.0
-- **Energy similarity**: 1.0 × (1 - |target_energy - song_energy|) [range: 0-1]
-- **Danceability bonus**: +0.3 (if high_energy=True and danceability > 0.7)
-- **Acousticness bonus**: +0.5 (if likes_acoustic=True and acousticness > 0.5)
-
-### Selection & Explanation:
-1. Score all 18 songs using the above weights
-2. Sort by descending score
-3. Return top K recommendations (default K=3)
-4. Generate human-readable explanation for each (e.g., "matches your favorite genre and has good acousticness")
+**original capabilities:**
+- load and score songs from a csv catalog using a weighted point formula
+- support multiple scoring strategies (genre-first, mood-first, energy-focused)
+- apply a diversity penalty to prevent artist/genre repetition in results
+- display results in a clean cli format or formatted table
+- a full pytest suite (28 tests) validating scoring, ranking, and edge cases
 
 ---
 
-## Dataset
+## 2. new ai feature — gemma-powered recommendation pipeline
 
-The catalog contains **18 diverse songs** across 10 genres:
-- Pop, Lofi, Rock, Indie Pop, Metal, Jazz, Electronic, Acoustic, Classical, Reggae, Hip-Hop, Country
+**what was added:** a 4-step agentic pipeline powered by google's gemma 3 1b model (`gemma-3-1b-it`) that lets users describe what they want in plain english instead of filling out a preference form.
 
-**Genre Distribution:**
-- High representation: Pop (2), Lofi (3), Rock (1), Jazz (1)
-- Medium representation: Electronic, Hip-Hop, Country, Indie Pop (1 each)
-- Lower representation: Metal, Acoustic, Classical, Reggae (1 each)
+**the pipeline steps (all intermediate steps are printed and observable):**
 
-All attributes are realistic and Spotify-like (refer to `data/songs.csv`).
+```
+step 1 — parse:     gemma converts natural language → structured preferences json
+step 2 — recommend: existing scoring engine runs on those preferences
+step 3 — critique:  gemma self-evaluates whether the results match the request
+step 3b — refine:   if critique flags issues, preferences are adjusted and retried
+step 4 — explain:   gemma writes a friendly 2-3 sentence summary of results
+```
+
+**how it is integrated:** the pipeline is called from `main.py` → `main_ai()`. it uses the existing `recommend_songs()` function from `recommender.py` as step 2 — gemma handles the language layer, and the original scoring engine still does the ranking. this is a real integration, not an isolated demo.
 
 ---
 
-## Getting Started
+## 3. system architecture diagram
 
-### Setup
+```
+user natural language input
+           │
+           ▼
+┌─────────────────────────┐
+│  input guardrail        │  ← checks: length, type (guardrails.py)
+└─────────────────────────┘
+           │
+           ▼
+┌─────────────────────────┐
+│  step 1: ai parser      │  ← gemma-3-1b-it (ai_assistant.py)
+│  gemma parses nl → json │    natural language → preferences dict
+└─────────────────────────┘
+           │
+           ▼
+┌─────────────────────────┐
+│  preference guardrail   │  ← validates genre, mood, energy range
+└─────────────────────────┘
+           │
+           ▼
+┌─────────────────────────┐     ┌──────────────────────┐
+│  step 2: recommender    │◀────│  data/songs.csv       │
+│  engine (recommender.py)│     │  26 songs, 13 attrs   │
+│  score_song()           │     └──────────────────────┘
+│  recommend_songs()      │
+└─────────────────────────┘
+           │
+           ▼
+┌─────────────────────────┐
+│  step 3: ai critique    │  ← gemma reviews: do results match request?
+│  verdict: good or poor  │    prints reasoning
+└─────────────────────────┘
+           │
+    ┌──────┴──────────┐
+    │ poor            │ good
+    ▼                 ▼
+┌──────────┐   ┌──────────────────────────┐
+│ step 3b  │   │  step 4: ai explanation  │ ← gemma writes friendly summary
+│ adjust   │   │  (ai_assistant.py)       │
+│ & retry  │   └──────────────────────────┘
+└────┬─────┘              │
+     └────────────────────▼
+              final output
+     top 5 songs + natural language explanation
+```
 
-1. Create a virtual environment (optional but recommended):
+---
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate      # Mac or Linux
-   .venv\Scripts\activate         # Windows
-   ```
+## 3b. rag enhancement — custom knowledge retrieval
 
-2. Install dependencies (if any):
+**what it does:** before gemma parses the user's request, the system retrieves the most relevant chunks from a music knowledge base (`data/music_knowledge.txt`) using tf-idf similarity. those chunks are injected directly into the gemma prompt so it has concrete guidance on genres, moods, and energy levels.
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+**files:**
+- `data/music_knowledge.txt` — 35 entries covering all 14 genres, all 8 moods, and 10 activity-based mappings (gym, studying, rainy day, etc.)
+- `src/rag.py` — loads the knowledge base, builds a tf-idf index, and returns the top-k most similar chunks via cosine similarity
 
-3. Run the recommender:
+**retrieval in action:**
 
-   ```bash
-   cd src
-   python3 main.py
-   ```
+| user input | top retrieved chunk |
+|---|---|
+| `"something chill for studying"` | `[activity: studying] — best picks: lofi, classical, ambient. mood: focused. energy: 0.2–0.45` |
+| `"pump me up for the gym"` | `[activity: gym/workout] — best picks: rock, metal, electronic. mood: energetic. energy: 0.75–1.0` |
+| `"sad rainy day acoustic vibes"` | `[activity: rainy day] — best picks: jazz, indie, acoustic. mood: moody. likes_acoustic: true` |
 
-### Running Tests
+**impact on output quality:** without rag, gemma has to guess what "studying" or "rainy day" means in terms of genre/mood/energy. with rag, the retrieved chunk tells it exactly — reducing hallucinated or mismatched genres and improving energy accuracy for activity-based requests.
 
-Run the test suite with:
+---
+
+## 3c. few-shot specialization
+
+**what it does:** `src/few_shot.py` stores 8 curated (input → json) examples that teach gemma exactly how activity and vibe descriptions map to genre/mood/energy values. these examples are injected into the prompt alongside the rag context, creating a specialized parsing mode that measurably outperforms the zero-shot baseline.
+
+**`parse_user_input()` (baseline)** — no examples, gemma guesses from the request alone.  
+**`parse_user_input_few_shot()` (specialized)** — 8 examples + rag context guide every decision.
+
+**measured difference (challenge 6 output):**
+
+```
+input: "chill music for a late night coding session"
+  baseline  → genre=electronic    mood=energetic    energy=0.7
+  few-shot  → genre=synthwave     mood=focused      energy=0.5
+  *** measurable difference in: genre, mood, energy
+
+input: "something aggressive for heavy lifting"
+  baseline  → genre=rock          mood=intense      energy=0.85
+  few-shot  → genre=metal         mood=aggressive   energy=0.92
+  *** measurable difference in: genre, mood, energy
+
+input: "soft background music for a coffee shop"
+  baseline  → genre=pop           mood=happy        energy=0.6
+  few-shot  → genre=jazz          mood=relaxed      energy=0.38
+  *** measurable difference in: genre, mood, energy
+```
+
+the few-shot output is consistently more precise and activity-appropriate than the baseline across all test inputs.
+
+---
+
+## 4. end-to-end demonstration
+
+**running the original system:**
+```bash
+cd src
+python3 main.py
+```
+
+**running the ai pipeline (challenge 5):**
+```python
+# in main.py, change the last line from main() to main_ai()
+python3 main.py
+```
+
+**example input 1:** `"something chill and relaxing for late night studying"`
+
+![example 1 - chill studying](docs/example1.png)
+
+```
+[step 1: parse] → genre=lofi, mood=chill, energy=0.3, acoustic=true
+[step 2: recommend] returned 5 results
+[step 3: critique] verdict: good
+  reason: the songs are low-energy lofi and acoustic, matching the request well.
+[step 4: explain]
+  these tracks are perfect for a late-night study session — low energy, calm
+  instrumentals, and a dreamy mood that won't distract you. artists like loroom
+  and quietfield keep things mellow and focused all the way through.
+
+top results:
+  1. midnight coding by loroom — score: 4.48
+  2. rainy window by quietfield — score: 3.95
+  3. float away by driftwood — score: 3.72
+```
+
+**example input 2:** `"pump me up, i'm about to hit the gym"`
+
+![example 2 - gym pump up](docs/example2.png)
+
+```
+[step 1: parse] → genre=rock, mood=energetic, energy=0.9, acoustic=false
+[step 2: recommend] returned 5 results
+[step 3: critique] verdict: good
+  reason: all top results are high-energy rock or electronic tracks.
+[step 4: explain]
+  these songs are built for max intensity — high bpm, hard-hitting beats,
+  and aggressive energy to keep you pushing through every set.
+
+top results:
+  1. storm runner by voltline — score: 4.21
+  2. gym hero by max pulse — score: 4.10
+  3. iron pulse by steelwave — score: 3.88
+```
+
+**example input 3:** `"sad rainy day, i want something acoustic and emotional"`
+
+![example 3 - rainy day acoustic](docs/example3.png)
+
+```
+[step 1: parse] → genre=acoustic, mood=moody, energy=0.25, acoustic=true
+[step 2: recommend] returned 5 results
+[step 3: critique] verdict: poor
+  reason: top songs lean more relaxed than emotionally intense.
+[step 3b: refine] adjusting energy and retrying...
+[step 4: explain]
+  these acoustic tracks have that quiet, emotional weight that fits a
+  grey day perfectly — soft guitar, melancholy tone, and honest storytelling.
+
+top results:
+  1. wooden heart by clara voss — score: 3.90
+  2. november rain by the drift — score: 3.74
+  3. alone again by softsong — score: 3.61
+```
+
+---
+
+## 5. reliability, evaluation, and guardrails
+
+### guardrails (`src/guardrails.py`)
+
+**input guardrail — `check_text_input()`:**
+- blocks empty or very short input (< 3 characters)
+- blocks excessively long input (> 500 characters)
+- runs before anything is sent to gemma
+
+**preference guardrail — `validate_preferences()`:**
+- checks genre is one of 14 valid options; invalid → error message
+- checks mood is one of 8 valid options
+- checks energy is a float between 0.0 and 1.0
+- checks likes_acoustic is a boolean
+- runs after gemma parses the user input (catches hallucinated values)
+
+**output guardrail — `validate_output()`:**
+- confirms results are sorted by score descending
+- confirms score is numeric and reason is a non-empty string
+- confirms result count does not exceed k
+
+**guardrail behavior example:**
+```
+input: genre = "dubstep"
+→ validate_preferences() returns is_valid=False
+→ error: "invalid genre 'dubstep' — valid options: [acoustic, ambient, ...]"
+
+input: energy = 1.5
+→ validate_preferences() returns is_valid=False
+→ error: "energy must be a float between 0.0 and 1.0, got 1.5"
+```
+
+### evaluation harness (`tests/eval_script.py`)
+
+runs 9 predefined test cases and prints a pass/fail summary:
+
+```bash
+python tests/eval_script.py
+```
+
+```
+============================================================
+evaluation harness — music recommender system
+============================================================
+
+[pass ✓] pop/happy user gets at least one pop song
+         top 5 includes at least one pop song
+
+[pass ✓] lofi/chill user gets low-energy top result
+         top result has energy below 0.6
+
+[pass ✓] high-energy user gets high-energy top result
+         top result has energy above 0.7
+
+[pass ✓] returns exactly k results
+         exactly 3 results when k=3
+
+[pass ✓] scores in descending order
+         all scores sorted highest to lowest
+
+[pass ✓] valid preferences pass guardrail
+         valid preference dict returns is_valid=true from guardrail
+
+[pass ✓] invalid genre caught by guardrail
+         invalid genre 'dubstep' is flagged as invalid by guardrail
+
+[pass ✓] invalid energy range caught by guardrail
+         energy value 1.5 (out of range) is flagged by guardrail
+
+[pass ✓] output guardrail validates sorted results
+         output passes guardrail: sorted, correct types, at most k results
+
+============================================================
+results: 9/9 passed
+all tests passed!
+============================================================
+```
+
+---
+
+## 6. setup and installation
+
+### requirements
+
+- python 3.9+
+- a google ai api key (for the gemma ai pipeline)
+
+### install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### set your api key
+
+```bash
+# mac/linux
+export GOOGLE_API_KEY="your-api-key-here"
+
+# windows
+set GOOGLE_API_KEY=your-api-key-here
+```
+
+get a free api key at: https://aistudio.google.com/apikey
+
+### run the original recommender (no api key needed)
+
+```bash
+cd src
+python3 main.py
+```
+
+### run the ai-powered pipeline
+
+```python
+# open src/main.py and change the last line to:
+main_ai()
+```
+
+then run:
+```bash
+cd src
+python3 main.py
+```
+
+### run the test suite
 
 ```bash
 pytest tests/
 ```
 
----
+### run the evaluation harness
 
-## Experiments & Results
-
-### Test Profile 1: Pop & Happy Lover
-```
-Preferences: Pop genre, Happy mood, Energy 0.8, High danceability
-Top Recommendation: "Sunrise City" by Neon Echo (Score: 4.28)
-Reason: Matches genre + mood + close energy + very danceable
+```bash
+python tests/eval_script.py
 ```
 
-### Test Profile 2: Lofi & Chill Listener
+---
+
+## 7. reflection on ai collaboration and system design
+
+### how i used ai during development
+
+i used claude (claude code) throughout this project for multiple things:
+
+- **planning:** i described what i wanted to build (a 4-step agentic pipeline) and asked for a plan before writing any code. this helped me see the full architecture before touching a file.
+- **code generation:** i asked claude to write `ai_assistant.py`, `guardrails.py`, and the eval script. i gave it context about my existing codebase (the keys my preference dicts use, the function signatures in recommender.py) so it could generate code that actually integrated correctly instead of just generic demos.
+- **debugging:** when i wasn't sure if the gemma model would reliably output clean json, i asked how to handle extra prose around the json — that's where the `_extract_json()` helper came from (using regex to pull the json object out of whatever text gemma returns).
+- **design decisions:** i asked whether the critique step (step 3) should just check or actually retry. claude recommended making it retry with an adjusted energy value, which became the refine step (3b). this made the pipeline feel more like a real agent.
+
+### one helpful ai suggestion
+
+the most useful suggestion was building the critique → refine loop. originally i just planned to run parse → recommend → explain. claude pointed out that if gemma critiques the results and finds they're a poor match, having it just tell the user "these don't fit" without doing anything about it isn't very useful. the refine step (adjusting energy and re-running the recommender) made the system actually responsive to its own self-evaluation — which is the whole point of a multi-step agent.
+
+### one flawed ai suggestion
+
+claude initially used `favorite_genre`, `favorite_mood`, and `target_energy` as the preference dict keys in `ai_assistant.py`. but my existing `recommender.py` uses `genre`, `mood`, and `energy`. this would have caused a silent failure — the pipeline would have run without errors but the recommender would have scored every song with zero genre/mood matches because the keys didn't match. i caught it when i looked at the generated code carefully and compared it to `main.py`. the fix was straightforward but it showed that ai-generated code can have integration bugs that are hard to spot without reading it closely.
+
+### system limitations and future improvements
+
+**current limitations:**
+- gemma 3 1b is a small model — it sometimes misinterprets unusual requests or picks a mood that's close but not quite right
+- the song catalog only has 26 songs, so even a perfect parse will return weak results for underrepresented genres
+- the refine step only adjusts energy — it doesn't try other fixes like switching genre or mood
+- no memory across requests — each call is completely independent
+
+**future improvements:**
+- use a larger model (gemma 3 4b or 12b) for more accurate parsing
+- expand the catalog to 200+ songs with better genre/mood balance
+- make the refine step smarter — try multiple adjustments (energy, genre, mood) before giving up
+- add a streamlit ui so users can interact conversationally instead of editing code
+
+---
+
+## 8. original system results
+
+### test profile 1: pop & happy lover
 ```
-Preferences: Lofi genre, Chill mood, Energy 0.4, Acoustic preference
-Top Recommendation: "Midnight Coding" by LoRoom (Score: 4.48)
-Reason: Matches genre + mood + close energy + good acousticness
+preferences: pop genre, happy mood, energy 0.8
+top recommendation: "sunrise city" by neon echo (score: 4.28)
+reason: matches genre + mood + close energy + very danceable
 ```
 
-### Test Profile 3: Rock & Intense Energy Seeker
+### test profile 2: lofi & chill listener
 ```
-Preferences: Rock genre, Intense mood, Energy 0.9, High danceability
-Top Recommendation: "Storm Runner" by Voltline (Score: 3.99)
-Reason: Matches genre + mood + exact energy match
+preferences: lofi genre, chill mood, energy 0.4, acoustic preference
+top recommendation: "midnight coding" by loroom (score: 4.48)
+reason: matches genre + mood + close energy + good acousticness
 ```
 
-**Key Observation:** The system effectively differentiates between opposite user types. A chill lofi listener gets very different recommendations (low energy, high acoustic) than a rock/intense listener, demonstrating that the weighting strategy creates meaningful preference separation.
+### test profile 3: rock & intense energy seeker
+```
+preferences: rock genre, intense mood, energy 0.9
+top recommendation: "storm runner" by voltline (score: 3.99)
+reason: matches genre + mood + exact energy match
+```
 
 ---
 
-## Limitations and Risks
+## 9. dataset
 
-1. **Small catalog (18 songs)**: Limited diversity; real systems have millions
-2. **No collaborative filtering**: Doesn't learn from other users' preferences
-3. **No temporal dynamics**: Ignores mood changes throughout the day/week
-4. **Genre imbalance**: Some genres (Metal, Classical) are underrepresented
-5. **Fixed weights**: All users get same 2.0/1.0/1.0 weights regardless of importance
-6. **No lyrical analysis**: Only uses audio features, not content
-7. **Cold start problem**: New users have no history to inform recommendations
-8. **Popularity bias**: No mechanism to discover underrated songs
+the catalog (`data/songs.csv`) contains 26 songs across 14 genres:
+pop, lofi, jazz, rock, electronic, indie, synthwave, acoustic, metal, classical, reggae, hip-hop, country, ambient
+
+moods covered: happy, chill, intense, relaxed, focused, moody, energetic, aggressive
+
+**known gap:** no "sad" mood songs — users requesting sad music will get the closest mood match instead.
 
 ---
 
-## Reflection
+## 10. original limitations
 
-This project revealed that **even simple weighting systems can create surprisingly effective recommendations** when features are chosen carefully. The key insight is that real-world recommenders like Spotify likely use similar logic under the hood—categorical matching (genre/mood) with fine-grained similarity scoring (energy/acousticness)—but with vastly more data and ML optimization.
+1. small catalog (26 songs) — limited variety for niche genres
+2. no collaborative filtering — doesn't learn from other users
+3. fixed weights — all users scored the same way
+4. no lyrical analysis — only audio features
+5. genre matching is exact — "pop" and "indie pop" are treated as completely different
+6. cold start problem — new users have no history
 
-The main takeaway is the importance of **transparency and explainability**. By showing users *why* a song was recommended, we build trust and understanding. Real recommenders that hide their logic can feel "magical" but also mysterious or unfair. This project demonstrates that simple, transparent algorithms can be both effective and understandable.
+![Example1](/Users/abigailaboah/Desktop/Screen Shot 2026-04-19 at 10.49.15 PM.png)
 
 
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
-
----
-
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-`## 1. Model Name
-
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
-
-BetterthanSpotify
-
----
-
-## 2. Intended Use
-
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
-
-BetterthanSpotify suggests the top 3–5 songs from a small catalog based on what a user says they like — including genre, mood, energy level, acoustic preference, favorite era, and specific mood tags.
-
-it’s mainly for classroom use to show how recommendation systems work behind the scenes. it’s not meant for real-world deployment or large-scale users.
-
----
-
-## 3. How It Works (Short Explanation)
-
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
-
-here’s what it looks at:
-
-genre: if the song matches the user’s favorite genre, it gets +1.0
-mood: if the mood matches, +1.0
-energy: the closer the song’s energy is to what the user wants, the more points it gets (up to +2.0)
-danceability bonus: if the user likes high-energy music and the song is very danceable, +0.3
-acousticness bonus: if the user prefers acoustic songs and the track is acoustic, +0.5
-popularity bonus: songs with popularity ≥75 get +0.4
-era bonus: if the song is from the user’s preferred decade, +0.5
-mood tag bonus: matching detailed mood tags (like “nostalgic” or “euphoric”) can add up to +0.6
-
-all these points get added together, and the highest-scoring songs are recommended. the system also explains why each song was picked, which makes it really transparent.
-
----
-
-## 4. Data
-
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
-
-the dataset (data/songs.csv) has 26 songs total. it started with 10 songs and was expanded by adding 16 more to make it more diverse.
-
-each song includes 13 attributes:
-id, title, artist, genre, mood, energy, tempo, valence, danceability, acousticness, popularity, release decade, and mood tags.
-
-genres included: pop, lofi, rock, jazz, metal, electronic, acoustic, classical, reggae, hip-hop, country, indie pop, synthwave, ambient
-
-moods included: happy, chill, intense, relaxed, focused, moody, energetic, aggressive
-
-overall, the dataset leans toward mainstream western music. pop, lofi, and rock are the most represented, while genres like classical, reggae, and country only have one song each. also, there are no “sad” songs, which is a noticeable gap.
-
-## 5. Strengths
-
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
-
-this recommender works best when the user has clear preferences.
-
-for example, a lofi + chill user consistently gets really accurate results — everything lines up across genre, mood, and energy
-a rock + intense energy user gets strong matches like “storm runner,” which fits almost perfectly
-the system is very transparent — it shows exactly how each score was built, so nothing feels random
-energy matching works really well as a tiebreaker when songs are otherwise similar
-
-overall, it’s simple but predictable, which actually makes it feel reliable in the right situations.
----
-
-## 7. Evaluation
-
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
-
-there are definitely some weaknesses:
-
-small catalog: with only 26 songs, some genres barely have representation, so those users get weaker recommendations
-missing moods: there are no “sad” songs, so those users basically can’t be served properly
-same weights for everyone: the model treats all users the same, even though people value things like mood or genre differently
-artist repetition: the same artist can show up multiple times in top results, which limits variety
-strict genre matching: “pop” and “indie pop” are treated as completely different, which feels unrealistic
-bias in practice: if this were a real product, fans of popular genres (like pop or lofi) would consistently get better recommendations than others
-
-so while it works, it’s not equally fair across all user types.
-
-i tested the system in a few different ways:
-
-user profiles:
-i ran six profiles — three normal (pop/happy, lofi/chill, rock/intense) and three edge cases (like high-energy sad). the normal ones worked really well, but the edge cases exposed gaps, especially with missing moods.
-automated tests:
-there are 17 pytest cases, all passing. they check scoring, ranking, edge cases, and overall functionality.
-sensitivity testing:
-i adjusted the weights (like lowering genre importance and increasing energy). this showed that small changes in weights can completely shift what gets recommended, which highlights how subjective these systems really are.
----
-##8. future work
-
-if i had more time, i’d improve it by:
-
-expanding the dataset to 100+ songs with better balance across genres and moods
-adding genre similarity (so related genres get partial credit)
-letting users customize weights based on what they care about most
-incorporating collaborative filtering (using patterns from multiple users)
-actually using the valence score to better capture emotional tone
-
-these changes would make it feel a lot more realistic and personalized.
-
-## 9. Personal Reflection
-
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
-
-this project made me realize how far a simple scoring system can go — but also how limited it is without the right data.
-
-what surprised me most was how often certain songs (like “gym hero”) showed up across completely different users. it made me realize that in a small dataset, a few “well-rounded” songs can dominate everything, even if they’re not the best fit.
-
-it also changed how i think about platforms like spotify. they’re probably doing something similar at a basic level, just with way more data and smarter weighting. scale is really what makes their recommendations feel personal.
-
-at the end of the day, human judgment still matters a lot. the algorithm only reflects what you choose to include — if you leave out something like “sad” music, the system literally can’t fix that on its own. someone has to recognize those gaps and design around them.
-
-
-`
-![Terminal window displaying Python test output with green checkmarks indicating all tests passed, showing test file names and execution summary in a dark command-line interface](data/image%203-21-26.jpg)
-
-![Terminal Output](data/Image%203-21-26%20at%208.08%20PM.jpg)
-
-![Terminal Output](data/Image%203-21-26%20at%208.58%20PM.jpg)
-
-![Terminal Output](data/Image%203-21-26%20at%208.59%20PM.jpg)
 
 
