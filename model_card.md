@@ -338,10 +338,6 @@ We tested three "adversarial" scenarios to break the system:
 
 ## 9. Personal Reflection  
 
-A few sentences about your experience.  
+Building this project taught me that recommender systems are essentially scoring engines — they don't "understand" music, they just match numbers against user preferences. The most unexpected discovery was the critique → refine loop: when Gemma flags results as a poor match, the system flips the energy value and reruns the recommender, and that simple fix actually works because most mismatches come down to energy being off. This changed the way I think about apps like Spotify — what feels like personalization is really pattern matching at scale, and the catalog and data matter more than the algorithm. A perfect scoring formula still fails if the data is thin or unbalanced, which reinforces the importance of diverse, well-represented data in any recommendation system.
 
-Prompts:  
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
