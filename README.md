@@ -151,7 +151,7 @@ python3 main.py
 
 **example input 1:** `"something chill and relaxing for late night studying"`
 
-![example 1 - chill studying](docs/example1.png)
+![example 1 - chill studying](assets/example1.png)
 
 ```
 [step 1: parse] → genre=lofi, mood=chill, energy=0.3, acoustic=true
@@ -171,7 +171,7 @@ top results:
 
 **example input 2:** `"pump me up, i'm about to hit the gym"`
 
-![example 2 - gym pump up](docs/example2.png)
+![example 2 - gym pump up](assets/example2.png)
 
 ```
 [step 1: parse] → genre=rock, mood=energetic, energy=0.9, acoustic=false
@@ -190,7 +190,7 @@ top results:
 
 **example input 3:** `"sad rainy day, i want something acoustic and emotional"`
 
-![example 3 - rainy day acoustic](docs/example3.png)
+![example 3 - rainy day acoustic](assets/example3.png)
 
 ```
 [step 1: parse] → genre=acoustic, mood=moody, energy=0.25, acoustic=true
